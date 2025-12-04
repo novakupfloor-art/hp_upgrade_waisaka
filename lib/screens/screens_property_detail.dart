@@ -756,10 +756,10 @@ ${widget.property.mainImageUrl ?? ''}
         if (_hargaRata.isNotEmpty)
           _buildInsightCard(
             icon: Icons.analytics_outlined,
-            title: 'Analisis Harga Pasar',
+            title: 'Analisa Harga Pasar',
             content: _hargaRata,
-            color: const Color(0xFFE65100),
-            accentColor: const Color(0xFFFFF3E0),
+            color: Colors.purple, // Purple
+            accentColor: Colors.purple[50]!,
           ),
 
         // Fasilitas Terdekat Card
@@ -768,8 +768,8 @@ ${widget.property.mainImageUrl ?? ''}
             icon: Icons.map_outlined,
             title: 'Fasilitas Sekitar',
             content: _fasilitasTerdekat,
-            color: const Color(0xFF1565C0),
-            accentColor: const Color(0xFFE3F2FD),
+            color: Colors.pinkAccent, // Merah muda mengkilap
+            accentColor: Colors.pink[50]!,
           ),
 
         // Peta Lokasi Card
@@ -942,13 +942,19 @@ ${widget.property.mainImageUrl ?? ''}
           leading: Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFFE65100),
+              color: const Color(
+                0xFF333333,
+              ), // Hitam mengkilap (Dark Grey/Black)
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.location_on, color: Colors.white, size: 22),
+            child: const Icon(
+              Icons.map,
+              color: Colors.white,
+              size: 22,
+            ), // Different icon
           ),
           title: Text(
-            'Lokasi Properti',
+            'Info Peta Map', // Updated title
             style: GoogleFonts.poppins(
               fontWeight: FontWeight.w600,
               fontSize: 15,

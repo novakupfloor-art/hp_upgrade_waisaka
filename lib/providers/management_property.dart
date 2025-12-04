@@ -195,7 +195,7 @@ class PropertyProvider extends ChangeNotifier {
   }
 
   /// Search properties using AI Waisaka
-  Future<void> searchWithAi({
+  Future<Map<String, dynamic>> searchWithAi({
     required String listingType,
     String? keywords,
     String? location,
@@ -248,11 +248,134 @@ class PropertyProvider extends ChangeNotifier {
           name: 'PropertyProvider',
         );
       }
+      return result;
     } catch (e) {
       _errorMessage = 'AI Search failed: ${e.toString()}';
       _errorDetails = e.toString();
       _setViewState(ViewState.error);
       developer.log('💥 AI Search error: $e', name: 'PropertyProvider');
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  /// Search properties from Home Page using AI
+  /// This updates the state but is intended to be followed by navigation to AllPropertiesScreen
+  Future<Map<String, dynamic>> searchWithAiFromHome({
+    required String listingType,
+    String? keywords,
+    String? location,
+    double? minPrice,
+    double? maxPrice,
+    int? bedrooms,
+    int? bathrooms,
+    String? propertyType,
+    String? certificate,
+    double? minLandArea,
+    double? maxLandArea,
+    double? minBuildingArea,
+    double? maxBuildingArea,
+  }) async {
+    developer.log('🤖 AI Search from Home initiated', name: 'PropertyProvider');
+    _setViewState(ViewState.loading);
+
+    try {
+      final result = await AiSearchRoutes.searchWithAi(
+        listingType: listingType,
+        keywords: keywords,
+        location: location,
+        minPrice: minPrice,
+        maxPrice: maxPrice,
+        bedrooms: bedrooms,
+        bathrooms: bathrooms,
+        propertyType: propertyType,
+        certificate: certificate,
+        minLandArea: minLandArea,
+        maxLandArea: maxLandArea,
+        minBuildingArea: minBuildingArea,
+        maxBuildingArea: maxBuildingArea,
+      );
+
+      if (result['success'] == true) {
+        _properties = result['properties'] as List<Property>;
+        _errorMessage = '';
+        _errorDetails = '';
+        _setViewState(ViewState.success);
+        developer.log(
+          '✅ AI Search from Home successful: ${_properties.length} properties',
+          name: 'PropertyProvider',
+        );
+      } else {
+        _errorMessage = result['error'] ?? 'AI Search failed';
+        _errorDetails = result.toString();
+        _setViewState(ViewState.error);
+      }
+      return result;
+    } catch (e) {
+      _errorMessage = 'AI Search failed: ${e.toString()}';
+      _errorDetails = e.toString();
+      _setViewState(ViewState.error);
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  /// Regular Search from Home Page
+  Future<void> searchPropertiesFromHome({
+    String? keyword,
+    String? listingType,
+    String? categoryId,
+    String? location,
+    String? priceFrom,
+    String? priceTo,
+    String? bedrooms,
+    String? bathrooms,
+    String? landSizeFrom,
+    String? landSizeTo,
+    String? buildingSizeFrom,
+    String? buildingSizeTo,
+    String? certificates,
+    int page = 1,
+    int limit = 9,
+    String? order,
+  }) async {
+    developer.log('🔍 Regular Search from Home...', name: 'PropertyProvider');
+    _setViewState(ViewState.loading);
+
+    try {
+      final result = await PropertySearchRoutes.searchProperties(
+        keyword: keyword,
+        tipe: listingType,
+        idKategoriProperty: categoryId,
+        location: location,
+        priceFrom: priceFrom,
+        priceTo: priceTo,
+        bedrooms: bedrooms,
+        bathrooms: bathrooms,
+        landSizeFrom: landSizeFrom,
+        landSizeTo: landSizeTo,
+        buildingSizeFrom: buildingSizeFrom,
+        buildingSizeTo: buildingSizeTo,
+        certificates: certificates,
+        page: page,
+        limit: limit,
+        order: order,
+      );
+
+      if (result['success'] == true) {
+        _properties = result['properties'] as List<Property>;
+        _setViewState(ViewState.success);
+        developer.log(
+          '✅ Home Search successful: ${_properties.length} properties',
+          name: 'PropertyProvider',
+        );
+      } else {
+        _errorMessage = result['error'] ?? 'Search failed';
+        _errorDetails = result.toString();
+        _setViewState(ViewState.error);
+      }
+    } catch (e) {
+      _errorMessage = 'Search failed: ${e.toString()}';
+      _errorDetails = e.toString();
+      _setViewState(ViewState.error);
     }
   }
 

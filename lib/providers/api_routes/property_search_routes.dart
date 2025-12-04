@@ -43,27 +43,41 @@ class PropertySearchRoutes {
             if (tipe != null) 'tipe': tipe,
             if (idKategoriProperty != null)
               'id_kategori_property': idKategoriProperty,
+            if (location != null && location.isNotEmpty) 'location': location,
+
             // Price filters - use min_harga/max_harga
             if (priceFrom != null && priceFrom.isNotEmpty)
               'min_harga': priceFrom,
             if (priceTo != null && priceTo.isNotEmpty) 'max_harga': priceTo,
+
             // Bedroom/Bathroom filters - use kamar_tidur/kamar_mandi
             if (bedrooms != null && bedrooms.isNotEmpty)
-              'kamar_tidur': bedrooms.replaceAll('+', ''),
+              'kamar_tidur': bedrooms,
             if (bathrooms != null && bathrooms.isNotEmpty)
-              'kamar_mandi': bathrooms.replaceAll('+', ''),
+              'kamar_mandi': bathrooms,
+
             // Land area filters - use min_lt/max_lt
             if (landSizeFrom != null && landSizeFrom.isNotEmpty)
               'min_lt': landSizeFrom,
             if (landSizeTo != null && landSizeTo.isNotEmpty)
               'max_lt': landSizeTo,
+
             // Building area filters - use min_lb/max_lb
             if (buildingSizeFrom != null && buildingSizeFrom.isNotEmpty)
               'min_lb': buildingSizeFrom,
             if (buildingSizeTo != null && buildingSizeTo.isNotEmpty)
               'max_lb': buildingSizeTo,
+
+            // Certificates
+            if (certificates != null && certificates.isNotEmpty)
+              'certificates': certificates,
+
+            // Sorting
+            if (order != null && order.isNotEmpty) 'order': order,
+
             // Pagination
             if (page != null) 'page': page.toString(),
+            if (limit != null) 'limit': limit.toString(),
           },
         ),
         headers: await ApiBase.getHeaders(),

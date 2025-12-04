@@ -29,10 +29,15 @@ class _AllPropertiesScreenState extends State<AllPropertiesScreen> {
     super.initState();
     // Load all properties initially
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<PropertyProvider>().loadProperties(
-        limit: 50,
-        listingType: widget.initialListingType,
-      );
+      // If initial filters are provided (e.g. from Home Search), we assume
+      // the provider has already been updated with the search results.
+      // So we ONLY load default properties if NO filters are provided.
+      if (widget.initialFilters == null || widget.initialFilters!.isEmpty) {
+        context.read<PropertyProvider>().loadProperties(
+          limit: 50,
+          listingType: widget.initialListingType,
+        );
+      }
     });
   }
 

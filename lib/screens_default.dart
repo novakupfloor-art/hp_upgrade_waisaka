@@ -64,13 +64,8 @@ class _ScreensDefaultState extends State<ScreensDefault> {
   void _handleListingTypeChange(String type) {
     setState(() => _selectedListingType = type);
 
-    // Navigate to All Properties Screen with the selected type
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AllPropertiesScreen(initialListingType: type),
-      ),
-    );
+    // Reload properties with new listing type on default screen
+    context.read<PropertyProvider>().loadProperties(listingType: type);
   }
 
   @override
@@ -279,15 +274,8 @@ class _ScreensDefaultState extends State<ScreensDefault> {
             }
           }
         },
-        // Navigate to All Properties screen when search is performed
-        onNavigateToResults: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const AllPropertiesScreen(),
-            ),
-          );
-        },
+        // Keep search results on default screen
+        // onNavigateToResults: null, // Removed navigation
       ),
     );
   }

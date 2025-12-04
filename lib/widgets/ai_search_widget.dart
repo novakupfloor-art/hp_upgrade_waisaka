@@ -18,7 +18,41 @@ class AiSearchWidget extends StatefulWidget {
     this.onResultsReceived,
     this.onListingTypeChanged,
     this.onNavigateToResults, // Add to constructor
+    this.onAiSearch,
+    this.onRegularSearch,
   });
+
+  final Future<void> Function({
+    required String listingType,
+    String? keywords,
+    String? location,
+    double? minPrice,
+    double? maxPrice,
+    int? bedrooms,
+    int? bathrooms,
+    String? propertyType,
+    String? certificate,
+    double? minLandArea,
+    double? maxLandArea,
+    double? minBuildingArea,
+    double? maxBuildingArea,
+  })?
+  onAiSearch;
+
+  final Future<void> Function({
+    String? keyword,
+    String? listingType,
+    String? location,
+    String? priceFrom,
+    String? priceTo,
+    String? bedrooms,
+    String? bathrooms,
+    String? buildingSizeFrom,
+    String? buildingSizeTo,
+    String? landSizeFrom,
+    String? landSizeTo,
+  })?
+  onRegularSearch;
 
   @override
   State<AiSearchWidget> createState() => AiSearchWidgetState();
@@ -117,7 +151,7 @@ class AiSearchWidgetState extends State<AiSearchWidget>
     super.dispose();
   }
 
-  void _performSearch() {
+  Future<void> _performSearch() async {
     final query = _searchController.text.trim();
     if (query.isEmpty && !_hasActiveFilters()) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -134,74 +168,303 @@ class AiSearchWidgetState extends State<AiSearchWidget>
     final provider = Provider.of<PropertyProvider>(context, listen: false);
 
     if (_useAiSearch) {
-      // Use AI-powered search
-      // Convert String "5+" to int 5 for AI search if needed, or pass as is if AI supports it.
-      // Assuming AI search expects int for now based on PropertyProvider signature.
-      int? bedroomsInt;
-      if (_bedrooms != null) {
-        bedroomsInt = int.tryParse(_bedrooms!.replaceAll('+', ''));
+      // Show AI loading overlay
+      _showAiLoadingOverlay();
+
+      try {
+        if (widget.onAiSearch != null) {
+          await widget.onAiSearch!(
+            listingType: _selectedListingType,
+            keywords: query.isNotEmpty ? query : null,
+            location: null,
+            minPrice: null,
+            maxPrice: null,
+            bedrooms: null,
+            bathrooms: null,
+            minLandArea: null,
+            maxLandArea: null,
+            minBuildingArea: null,
+            maxBuildingArea: null,
+          );
+        } else {
+          // In AI Mode, we ignore manual filters and let AI parse the query
+          await provider.searchWithAi(
+            listingType: _selectedListingType,
+            keywords: query.isNotEmpty ? query : null,
+            // Explicitly set other filters to null so backend relies on AI parsing
+            location: null,
+            minPrice: null,
+            maxPrice: null,
+            bedrooms: null,
+            bathrooms: null,
+            minLandArea: null,
+            maxLandArea: null,
+            minBuildingArea: null,
+            maxBuildingArea: null,
+          );
+        }
+      } finally {
+        // Hide loading overlay
+        if (mounted && Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
       }
-
-      int? bathroomsInt;
-      if (_bathrooms != null) {
-        bathroomsInt = int.tryParse(_bathrooms!.replaceAll('+', ''));
-      }
-
-      // Handle Area Filters for AI Search
-      double? minLand = _minLandArea?.toDouble();
-      double? maxLand = _maxLandArea?.toDouble();
-      if (minLand != null && maxLand == null) maxLand = 1000000;
-      if (maxLand != null && minLand == null) minLand = 0;
-
-      double? minBuild = _minBuildingArea?.toDouble();
-      double? maxBuild = _maxBuildingArea?.toDouble();
-      if (minBuild != null && maxBuild == null) maxBuild = 1000000;
-      if (maxBuild != null && minBuild == null) minBuild = 0;
-
-      provider.searchWithAi(
-        listingType: _selectedListingType,
-        keywords: query.isNotEmpty ? query : null,
-        location: _location,
-        minPrice: _minPrice,
-        maxPrice: _maxPrice,
-        bedrooms: bedroomsInt,
-        bathrooms: bathroomsInt,
-        minLandArea: minLand,
-        maxLandArea: maxLand,
-        minBuildingArea: minBuild,
-        maxBuildingArea: maxBuild,
-      );
     } else {
       // Use regular filter search
 
-      // Handle Area Filters for Regular Search
-      int? minLand = _minLandArea;
-      int? maxLand = _maxLandArea;
-      if (minLand != null && maxLand == null) maxLand = 1000000;
-      if (maxLand != null && minLand == null) minLand = 0;
+      // Show basic loading (less fancy than AI)
+      _showRegularLoadingOverlay();
 
-      int? minBuild = _minBuildingArea;
-      int? maxBuild = _maxBuildingArea;
-      if (minBuild != null && maxBuild == null) maxBuild = 1000000;
-      if (maxBuild != null && minBuild == null) minBuild = 0;
+      try {
+        // Handle Area Filters for Regular Search
+        int? minLand = _minLandArea;
+        int? maxLand = _maxLandArea;
+        if (minLand != null && maxLand == null) maxLand = 1000000;
+        if (maxLand != null && minLand == null) minLand = 0;
 
-      provider.searchPropertiesWithFilters(
-        keyword: query.isNotEmpty ? query : null,
-        listingType: _selectedListingType,
-        location: _location,
-        priceFrom: _minPrice?.toString(),
-        priceTo: _maxPrice?.toString(),
-        bedrooms: _bedrooms,
-        bathrooms: _bathrooms,
-        buildingSizeFrom: minBuild?.toString(),
-        buildingSizeTo: maxBuild?.toString(),
-        landSizeFrom: minLand?.toString(),
-        landSizeTo: maxLand?.toString(),
-      );
+        int? minBuild = _minBuildingArea;
+        int? maxBuild = _maxBuildingArea;
+        if (minBuild != null && maxBuild == null) maxBuild = 1000000;
+        if (maxBuild != null && minBuild == null) minBuild = 0;
+
+        if (widget.onRegularSearch != null) {
+          await widget.onRegularSearch!(
+            keyword: query.isNotEmpty ? query : null,
+            listingType: _selectedListingType,
+            location: _location,
+            priceFrom: _minPrice?.toString(),
+            priceTo: _maxPrice?.toString(),
+            bedrooms: _bedrooms,
+            bathrooms: _bathrooms,
+            buildingSizeFrom: minBuild?.toString(),
+            buildingSizeTo: maxBuild?.toString(),
+            landSizeFrom: minLand?.toString(),
+            landSizeTo: maxLand?.toString(),
+          );
+        } else {
+          provider.searchPropertiesWithFilters(
+            keyword: query.isNotEmpty ? query : null,
+            listingType: _selectedListingType,
+            location: _location,
+            priceFrom: _minPrice?.toString(),
+            priceTo: _maxPrice?.toString(),
+            bedrooms: _bedrooms,
+            bathrooms: _bathrooms,
+            buildingSizeFrom: minBuild?.toString(),
+            buildingSizeTo: maxBuild?.toString(),
+            landSizeFrom: minLand?.toString(),
+            landSizeTo: maxLand?.toString(),
+          );
+        }
+      } finally {
+        // Hide loading overlay
+        if (mounted && Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+      }
     }
 
     // Trigger navigation to results screen if callback is provided
     widget.onNavigateToResults?.call();
+  }
+
+  void _showAiLoadingOverlay() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return PopScope(
+          canPop: false, // Prevent dismissal
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // AI Icon with pulsing animation
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0.8, end: 1.2),
+                    duration: const Duration(milliseconds: 800),
+                    curve: Curves.easeInOut,
+                    builder: (context, scale, child) {
+                      return Transform.scale(
+                        scale: scale,
+                        child: Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: const Color(
+                              0xFF1A237E,
+                            ).withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.psychology,
+                            size: 48,
+                            color: Color(0xFF1A237E),
+                          ),
+                        ),
+                      );
+                    },
+                    onEnd: () {
+                      // Restart animation if still mounted
+                      if (mounted) {
+                        setState(() {});
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Title
+                  const Text(
+                    'AI Waisaka Sedang Bekerja',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF333333),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Description
+                  const Text(
+                    'Menganalisis pencarian Anda dan mencari properti terbaik di database...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF666666),
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Loading indicator
+                  const SizedBox(
+                    width: 40,
+                    height: 40,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Color(0xFF1A237E),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Processing steps
+                  _buildProcessingStep('🤖 Memahami query Anda', true),
+                  const SizedBox(height: 8),
+                  _buildProcessingStep('🔍 Mencari di database', true),
+                  const SizedBox(height: 8),
+                  _buildProcessingStep('✨ Menyusun hasil terbaik', true),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildProcessingStep(String text, bool isActive) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (isActive)
+          SizedBox(
+            width: 12,
+            height: 12,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                const Color(0xFF1A237E).withValues(alpha: 0.5),
+              ),
+            ),
+          )
+        else
+          Icon(
+            Icons.check_circle,
+            size: 12,
+            color: Colors.green.withValues(alpha: 0.5),
+          ),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 12,
+            color: isActive ? const Color(0xFF1A237E) : const Color(0xFF999999),
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showRegularLoadingOverlay() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return PopScope(
+          canPop: false,
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Simple grey circular progress
+                  const SizedBox(
+                    width: 50,
+                    height: 50,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.grey),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Plain text
+                  const Text(
+                    'Mencari...',
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Subtle hint to use AI
+                  Text(
+                    'Tip: Gunakan AI Search untuk hasil lebih cepat',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.withValues(alpha: 0.7),
+                      fontStyle: FontStyle.italic,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _showAdvancedFilters() {
@@ -737,20 +1000,17 @@ class AiSearchWidgetState extends State<AiSearchWidget>
                   suffixIcon: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      IconButton(
-                        icon: Icon(
-                          Icons.tune,
-                          color: _hasActiveFilters()
-                              ? const Color(0xFF1A237E)
-                              : (_useAiSearch
-                                    ? const Color(
-                                        0xFF1A237E,
-                                      ).withValues(alpha: 0.7)
-                                    : Colors.grey),
+                      if (!_useAiSearch)
+                        IconButton(
+                          icon: Icon(
+                            Icons.tune,
+                            color: _hasActiveFilters()
+                                ? const Color(0xFF1A237E)
+                                : Colors.grey,
+                          ),
+                          onPressed: _showAdvancedFilters,
+                          tooltip: 'Filter Lanjutan',
                         ),
-                        onPressed: _showAdvancedFilters,
-                        tooltip: 'Filter Lanjutan',
-                      ),
                       IconButton(
                         icon: const Icon(
                           Icons.arrow_forward_rounded,
