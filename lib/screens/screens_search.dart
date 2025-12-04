@@ -5,14 +5,19 @@ import 'package:shimmer/shimmer.dart';
 import 'package:provider/provider.dart';
 
 import '../models/models_property.dart';
-import '../providers/providers_property.dart';
+import '../providers/management_property.dart';
 import '../../widgets/ai_search_widget.dart';
 import 'screens_property_detail.dart';
 
 class AllPropertiesScreen extends StatefulWidget {
   final Map<String, dynamic>? initialFilters;
+  final String initialListingType;
 
-  const AllPropertiesScreen({super.key, this.initialFilters});
+  const AllPropertiesScreen({
+    super.key,
+    this.initialFilters,
+    this.initialListingType = 'jual',
+  });
 
   @override
   State<AllPropertiesScreen> createState() => _AllPropertiesScreenState();
@@ -26,7 +31,7 @@ class _AllPropertiesScreenState extends State<AllPropertiesScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PropertyProvider>().loadProperties(
         limit: 50,
-        listingType: 'jual',
+        listingType: widget.initialListingType,
       );
     });
   }
@@ -56,7 +61,7 @@ class _AllPropertiesScreenState extends State<AllPropertiesScreen> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: AiSearchWidget(
-              initialListingType: 'jual',
+              initialListingType: widget.initialListingType,
               onSearchStarted: () {
                 // Search is handled by PropertyProvider
               },

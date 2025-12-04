@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:device_info_plus/device_info_plus.dart';
-import '../../models/models_user.dart';
+import '../models/models_user.dart';
 import 'api_base.dart';
 
 /// Authentication and User Management Routes

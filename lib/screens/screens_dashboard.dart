@@ -1,9 +1,9 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../config/auth_routes.dart';
 import '../models/models_user.dart';
-import '../../providers/api_routes/auth_routes.dart';
 import 'screens_login.dart';
-import 'screens_add_property.dart';
+import 'screens_add_property.dart'; // Found this file
 
 class DashboardScreen extends StatefulWidget {
   final User user;

@@ -1,11 +1,11 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../providers/api_routes/auth_routes.dart';
-import '../../screens_default.dart';
-import 'screens_staff_dashboard.dart';
-import 'screens_admin_dashboard.dart';
+import '../config/auth_routes.dart';
+import '../screens_default.dart';
 import 'screens_register.dart';
 import 'screens_forgot_password.dart';
+import 'screens_admin_dashboard.dart';
+import 'screens_staff_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

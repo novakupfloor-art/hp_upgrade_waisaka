@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../models/models_article.dart';
-import 'api_base.dart';
+import '../../config/api_base.dart';
 
 /// Article Management Routes
 class ArticleRoutes {

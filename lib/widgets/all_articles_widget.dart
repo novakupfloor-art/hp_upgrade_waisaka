@@ -1,6 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/providers_article.dart';
+import '../providers/management_article.dart';
 import '../widgets/article_card.dart';
 
 class AllArticlesWidget extends StatefulWidget {

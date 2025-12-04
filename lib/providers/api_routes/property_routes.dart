@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../models/models_property.dart';
-import 'api_base.dart';
+import '../../config/api_base.dart';
 
 /// Property Management Routes
 class PropertyRoutes {
@@ -34,7 +34,16 @@ class PropertyRoutes {
         final data = jsonDecode(response.body);
         if (data['success'] == true) {
           final properties = (data['data'] as List)
-              .map((item) => Property.fromJson(item))
+              .map((item) {
+                try {
+                  return Property.fromJson(item);
+                } catch (e) {
+                  debugPrint('❌ Error parsing property: $e');
+                  debugPrint('Item data: $item');
+                  return null;
+                }
+              })
+              .whereType<Property>()
               .toList();
           debugPrint('✅ Successfully parsed ${properties.length} properties');
           return properties;
@@ -59,19 +68,29 @@ class PropertyRoutes {
   /// Get property detail by ID
   static Future<Property> getPropertyDetail(int id) async {
     try {
+      debugPrint('📡 Fetching property detail for ID: $id');
+      final url = '${ApiBase.baseUrl}/mobile/properties/$id';
+      debugPrint('📡 URL: $url');
+
       final response = await http.get(
-        Uri.parse('${ApiBase.baseUrl}/mobile/properties/$id'),
+        Uri.parse(url),
         headers: await ApiBase.getHeaders(),
       );
+
+      debugPrint('📥 Response Status: ${response.statusCode}');
+      debugPrint('📥 Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true) {
           return Property.fromJson(data['data']);
+        } else {
+          throw Exception('API returned success=false: ${data['message']}');
         }
       }
-      throw Exception('Failed to load property detail');
+      throw Exception('HTTP ${response.statusCode}: ${response.body}');
     } catch (e) {
+      debugPrint('❌ Error in getPropertyDetail: $e');
       rethrow;
     }
   }
@@ -243,6 +262,51 @@ class PropertyRoutes {
       return false;
     } catch (e) {
       return false;
+    }
+  }
+
+  /// Generate AI Insight for property
+  static Future<Map<String, dynamic>> generateAiInsight(int propertyId) async {
+    try {
+      debugPrint('🤖 Generating AI Insight for property ID: $propertyId');
+      final url = '${ApiBase.apiBaseUrl}/mobile/property/ai/$propertyId';
+      debugPrint('📡 URL: $url');
+
+      // Create HTTP client with timeout
+      // AI generation takes 10-13 seconds (3 AI calls + sleep delays)
+      final client = http.Client();
+      try {
+        final response = await client
+            .post(Uri.parse(url), headers: await ApiBase.getHeaders())
+            .timeout(
+              const Duration(
+                seconds: 60,
+              ), // Allow up to 60 seconds for AI generation
+              onTimeout: () {
+                throw Exception(
+                  'AI generation timeout - proses memakan waktu terlalu lama. Silakan coba lagi.',
+                );
+              },
+            );
+
+        debugPrint('📥 Response Status: ${response.statusCode}');
+        debugPrint('📥 Response Body: ${response.body}');
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          if (data['success'] == true) {
+            return data['data'];
+          } else {
+            throw Exception('API returned success=false: ${data['message']}');
+          }
+        }
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
+      } finally {
+        client.close(); // Always close the client
+      }
+    } catch (e) {
+      debugPrint('❌ Error in generateAiInsight: $e');
+      rethrow;
     }
   }
 }

@@ -1,12 +1,12 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../providers/api_routes/auth_routes.dart';
-import '../../../providers/api_routes/property_routes.dart';
-import '../models/models_property.dart';
+import '../config/auth_routes.dart';
+import '../providers/api_routes/property_routes.dart';
 import '../models/models_user.dart';
+import '../models/models_property.dart';
+import 'screens_property_detail.dart';
 import 'screens_add_property.dart';
 import 'screens_edit_property.dart';
-import 'screens_property_detail.dart';
 
 class IklanPropertyTab extends StatefulWidget {
   const IklanPropertyTab({super.key});

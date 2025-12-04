@@ -26,12 +26,15 @@ class PropertyProvider extends ChangeNotifier {
     int page = 1,
     int limit = 6,
     String? listingType,
+    bool append = false,
   }) async {
     developer.log(
-      '🔄 Loading properties (type: $listingType)...',
+      '🔄 Loading properties (type: $listingType, page: $page, append: $append)...',
       name: 'PropertyProvider',
     );
-    _setViewState(ViewState.loading);
+    if (!append) {
+      _setViewState(ViewState.loading);
+    }
 
     try {
       developer.log(
@@ -50,7 +53,12 @@ class PropertyProvider extends ChangeNotifier {
         name: 'PropertyProvider',
       );
 
-      _properties = properties.take(limit).toList();
+      if (append) {
+        _properties.addAll(properties.take(limit));
+      } else {
+        _properties = properties.take(limit).toList();
+      }
+
       _errorMessage = '';
       _errorDetails = '';
       _setViewState(ViewState.success);

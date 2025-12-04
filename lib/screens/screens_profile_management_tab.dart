@@ -1,7 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../providers/api_routes/auth_routes.dart';
 import '../models/models_user.dart';
+import '../config/auth_routes.dart';
 import 'screens_login.dart';
 
 class ProfileManagementTab extends StatefulWidget {

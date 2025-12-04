@@ -1,11 +1,10 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../config/auth_routes.dart';
 import '../models/models_user.dart';
-import '../../providers/api_routes/auth_routes.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final User user;
-
   const EditProfileScreen({super.key, required this.user});
 
   @override

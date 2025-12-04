@@ -4,9 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 
-import 'providers/api_routes/auth_routes.dart';
-import 'providers/providers_property.dart';
-import 'providers/providers_article.dart';
+import 'config/auth_routes.dart';
+import 'providers/management_property.dart';
+import 'providers/management_article.dart';
 import 'screens/screens_login.dart';
 import 'screens/screens_register.dart';
 import 'screens/screens_property_detail.dart';
@@ -62,19 +62,15 @@ class _ScreensDefaultState extends State<ScreensDefault> {
   }
 
   void _handleListingTypeChange(String type) {
-    if (_selectedListingType == type) return;
-
     setState(() => _selectedListingType = type);
 
-    final searchWidget = _aiSearchKey.currentState;
-
-    // Check if we need to sync with search or just load default properties
-    if (searchWidget != null && searchWidget.hasActiveSearch) {
-      searchWidget.searchWithNewType(type);
-    } else {
-      context.read<PropertyProvider>().loadProperties(listingType: type);
-      searchWidget?.updateTypeSilently(type);
-    }
+    // Navigate to All Properties Screen with the selected type
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AllPropertiesScreen(initialListingType: type),
+      ),
+    );
   }
 
   @override
@@ -283,6 +279,15 @@ class _ScreensDefaultState extends State<ScreensDefault> {
             }
           }
         },
+        // Navigate to All Properties screen when search is performed
+        onNavigateToResults: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const AllPropertiesScreen(),
+            ),
+          );
+        },
       ),
     );
   }
@@ -318,234 +323,7 @@ class _ScreensDefaultState extends State<ScreensDefault> {
   }
 
   Widget _buildHorizontalPropertyList() {
-    return DataIklanProperty(
-      builder: (context, dataPropertyWidgets, child) {
-        if (dataPropertyWidgets.isLoading) {
-          return const SizedBox(
-            height: 280,
-            child: Center(child: CircularProgressIndicator()),
-          );
-        } else if (dataPropertyWidgets.hasError) {
-          return SizedBox(
-            height: 280,
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, color: Colors.red, size: 40),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Gagal memuat properti',
-                    style: GoogleFonts.poppins(color: Colors.red),
-                  ),
-                  TextButton(
-                    onPressed: () => dataPropertyWidgets.refreshProperties(),
-                    child: const Text('Coba Lagi'),
-                  ),
-                ],
-              ),
-            ),
-          );
-        } else if (!dataPropertyWidgets.hasData) {
-          return const SizedBox(
-            height: 280,
-            child: Center(child: Text('Tidak ada properti ditemukan')),
-          );
-        }
-
-        final properties = dataPropertyWidgets.properties;
-        return SizedBox(
-          height: 280,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: properties.length > 10 ? 10 : properties.length,
-            itemBuilder: (context, index) {
-              final item = properties[index];
-              return GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          PropertyDetailScreen(property: item),
-                    ),
-                  );
-                },
-                child: Container(
-                  width: 220,
-                  margin: const EdgeInsets.only(right: 16, bottom: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Image
-                      ClipRRect(
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(12),
-                        ),
-                        child: CachedNetworkImage(
-                          imageUrl:
-                              item.mainImageUrl ??
-                              'https://via.placeholder.com/400x200',
-                          height: 140,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Shimmer.fromColors(
-                            baseColor: Colors.grey[300]!,
-                            highlightColor: Colors.grey[100]!,
-                            child: Container(height: 140, color: Colors.white),
-                          ),
-                          errorWidget: (context, url, error) => Container(
-                            height: 140,
-                            color: Colors.grey[300],
-                            child: const Icon(
-                              Icons.image_not_supported,
-                              size: 50,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Content
-                      Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  item.formattedPrice,
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF1A237E),
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: item.tipeDisplay == 'Dijual'
-                                        ? Colors.orange.withValues(alpha: 0.1)
-                                        : Colors.blue.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    item.tipeDisplay,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w600,
-                                      color: item.tipeDisplay == 'Dijual'
-                                          ? Colors.orange
-                                          : Colors.blue,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              item.namaProperty,
-                              style: GoogleFonts.poppins(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF333333),
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.location_on_outlined,
-                                  size: 12,
-                                  color: Colors.grey,
-                                ),
-                                const SizedBox(width: 2),
-                                Expanded(
-                                  child: Text(
-                                    item.alamat,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 10,
-                                      color: Colors.grey[600],
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                if (item.kamarTidur != null) ...[
-                                  const Icon(
-                                    Icons.bed_outlined,
-                                    size: 12,
-                                    color: Colors.grey,
-                                  ),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    '${item.kamarTidur}',
-                                    style: GoogleFonts.poppins(fontSize: 10),
-                                  ),
-                                  const SizedBox(width: 8),
-                                ],
-                                if (item.kamarMandi != null) ...[
-                                  const Icon(
-                                    Icons.bathtub_outlined,
-                                    size: 12,
-                                    color: Colors.grey,
-                                  ),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    '${item.kamarMandi}',
-                                    style: GoogleFonts.poppins(fontSize: 10),
-                                  ),
-                                  const SizedBox(width: 8),
-                                ],
-                                if (item.lt != null) ...[
-                                  const Icon(
-                                    Icons.square_foot,
-                                    size: 12,
-                                    color: Colors.grey,
-                                  ),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    '${item.lt}m²',
-                                    style: GoogleFonts.poppins(fontSize: 10),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        );
-      },
-    );
+    return _PaginatedPropertyList(listingType: _selectedListingType);
   }
 
   Widget _buildHorizontalArticleList() {
@@ -725,6 +503,406 @@ class _ScreensDefaultState extends State<ScreensDefault> {
           ),
         ),
       ),
+    );
+  }
+}
+
+// Stateful widget for paginated horizontal property list
+class _PaginatedPropertyList extends StatefulWidget {
+  final String listingType;
+
+  const _PaginatedPropertyList({required this.listingType});
+
+  @override
+  State<_PaginatedPropertyList> createState() => _PaginatedPropertyListState();
+}
+
+class _PaginatedPropertyListState extends State<_PaginatedPropertyList> {
+  final ScrollController _scrollController = ScrollController();
+  static const double _itemWidth = 236.0; // 220 width + 16 margin
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.hasClients) {
+      // Force rebuild to update arrow buttons state
+      setState(() {});
+    }
+  }
+
+  void _scrollLeft() {
+    if (!_scrollController.hasClients) return;
+    final currentOffset = _scrollController.offset;
+    final currentIndex = (currentOffset / _itemWidth).ceil();
+    if (currentIndex > 0) {
+      _scrollController.animateTo(
+        (currentIndex - 1) * _itemWidth,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  void _scrollRight() {
+    if (!_scrollController.hasClients) return;
+    final currentOffset = _scrollController.offset;
+    final currentIndex = (currentOffset / _itemWidth).floor();
+    _scrollController.animateTo(
+      (currentIndex + 1) * _itemWidth,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  // _loadNextPage removed to disable infinite scroll
+
+  @override
+  Widget build(BuildContext context) {
+    return DataIklanProperty(
+      builder: (context, dataPropertyWidgets, child) {
+        // Debug logging
+        debugPrint('🏠 Property Widget State:');
+        debugPrint('  - isLoading: ${dataPropertyWidgets.isLoading}');
+        debugPrint('  - hasError: ${dataPropertyWidgets.hasError}');
+        debugPrint('  - hasData: ${dataPropertyWidgets.hasData}');
+        debugPrint(
+          '  - properties count: ${dataPropertyWidgets.properties.length}',
+        );
+        if (dataPropertyWidgets.hasError) {
+          debugPrint('  - error: ${dataPropertyWidgets.errorMessage}');
+        }
+
+        if (dataPropertyWidgets.isLoading) {
+          return const SizedBox(
+            height: 280,
+            child: Center(child: CircularProgressIndicator()),
+          );
+        } else if (dataPropertyWidgets.hasError) {
+          return SizedBox(
+            height: 280,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.red, size: 40),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Gagal memuat properti',
+                    style: GoogleFonts.poppins(color: Colors.red),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      dataPropertyWidgets.refreshProperties(
+                        listingType: widget.listingType,
+                      );
+                    },
+                    child: const Text('Coba Lagi'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        } else if (!dataPropertyWidgets.hasData) {
+          return const SizedBox(
+            height: 280,
+            child: Center(child: Text('Tidak ada properti ditemukan')),
+          );
+        }
+
+        final properties = dataPropertyWidgets.properties;
+
+        // Calculate visibility safely
+        bool canScrollLeft = false;
+        bool canScrollRight = false;
+
+        if (_scrollController.hasClients) {
+          canScrollLeft = _scrollController.offset > 5; // Small tolerance
+          final maxScroll = _scrollController.position.maxScrollExtent;
+          final currentScroll = _scrollController.offset;
+          // If we are not at the end, we can scroll right
+          canScrollRight = currentScroll < maxScroll - 5;
+        } else {
+          // Initial state: assume we can scroll right if there are many items
+          canScrollRight = properties.length > 2;
+        }
+
+        return SizedBox(
+          height: 280,
+          child: Stack(
+            children: [
+              ListView.builder(
+                controller: _scrollController,
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: properties.length,
+                itemBuilder: (context, index) {
+                  final item = properties[index];
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              PropertyDetailScreen(property: item),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: 220,
+                      margin: const EdgeInsets.only(right: 16, bottom: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Image
+                          ClipRRect(
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(12),
+                            ),
+                            child: CachedNetworkImage(
+                              imageUrl:
+                                  item.mainImageUrl ??
+                                  'https://via.placeholder.com/400x200',
+                              height: 140,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => Shimmer.fromColors(
+                                baseColor: Colors.grey[300]!,
+                                highlightColor: Colors.grey[100]!,
+                                child: Container(
+                                  height: 140,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              errorWidget: (context, url, error) => Container(
+                                height: 140,
+                                color: Colors.grey[300],
+                                child: const Icon(
+                                  Icons.image_not_supported,
+                                  size: 50,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ),
+                          ),
+                          // Content
+                          Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      item.formattedPrice,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF1A237E),
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: item.tipeDisplay == 'Dijual'
+                                            ? Colors.orange.withValues(
+                                                alpha: 0.1,
+                                              )
+                                            : Colors.blue.withValues(
+                                                alpha: 0.1,
+                                              ),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        item.tipeDisplay,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: item.tipeDisplay == 'Dijual'
+                                              ? Colors.orange
+                                              : Colors.blue,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  item.namaProperty,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF333333),
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.location_on_outlined,
+                                      size: 12,
+                                      color: Colors.grey,
+                                    ),
+                                    const SizedBox(width: 2),
+                                    Expanded(
+                                      child: Text(
+                                        item.alamat,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 10,
+                                          color: Colors.grey[600],
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    if (item.kamarTidur != null) ...[
+                                      const Icon(
+                                        Icons.bed_outlined,
+                                        size: 12,
+                                        color: Colors.grey,
+                                      ),
+                                      const SizedBox(width: 2),
+                                      Text(
+                                        '${item.kamarTidur}',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                    ],
+                                    if (item.kamarMandi != null) ...[
+                                      const Icon(
+                                        Icons.bathtub_outlined,
+                                        size: 12,
+                                        color: Colors.grey,
+                                      ),
+                                      const SizedBox(width: 2),
+                                      Text(
+                                        '${item.kamarMandi}',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                    ],
+                                    if (item.lt != null) ...[
+                                      const Icon(
+                                        Icons.square_foot,
+                                        size: 12,
+                                        color: Colors.grey,
+                                      ),
+                                      const SizedBox(width: 2),
+                                      Text(
+                                        '${item.lt}m²',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+              // Left Arrow
+              if (canScrollLeft)
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(left: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new, size: 18),
+                        color: const Color(0xFF1A237E),
+                        onPressed: _scrollLeft,
+                      ),
+                    ),
+                  ),
+                ),
+              // Right Arrow
+              if (canScrollRight)
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_forward_ios, size: 18),
+                        color: const Color(0xFF1A237E),
+                        onPressed: _scrollRight,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

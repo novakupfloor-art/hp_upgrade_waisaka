@@ -9,6 +9,8 @@ import '../../utils/utils_phone_utils.dart';
 import '../../utils/utils_html_helper.dart';
 import '../../utils/utils_mortgage_calculator.dart';
 
+import '../providers/api_routes/property_routes.dart';
+
 class PropertyDetailScreen extends StatefulWidget {
   final Property property;
 
@@ -19,19 +21,49 @@ class PropertyDetailScreen extends StatefulWidget {
 }
 
 class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
+  bool _isLoadingDetail = true;
+  late Property _property;
+
   bool _isFavorite = false;
   bool _isLoadingFavorite = false;
 
   // AI Insights variables
   late String _hargaRata;
   late String _fasilitasTerdekat;
-  late String _fasilitasDekorasi;
+  bool _isGeneratingAI = false;
 
   @override
   void initState() {
     super.initState();
+    _property = widget.property;
     _checkFavoriteStatus();
-    _initializeAIInsights();
+    _fetchPropertyDetail();
+  }
+
+  Future<void> _fetchPropertyDetail() async {
+    try {
+      // Fetch fresh data from API (AI generation is now manual via button)
+      final freshProperty = await PropertyRoutes.getPropertyDetail(
+        widget.property.idProperty,
+      );
+
+      if (mounted) {
+        setState(() {
+          _property = freshProperty;
+          _initializeAIInsights();
+          _isLoadingDetail = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching property detail: $e');
+      // Fallback to existing data if fetch fails
+      if (mounted) {
+        setState(() {
+          _initializeAIInsights();
+          _isLoadingDetail = false;
+        });
+      }
+    }
   }
 
   Future<void> _checkFavoriteStatus() async {
@@ -138,15 +170,107 @@ ${widget.property.mainImageUrl ?? ''}
   }
 
   void _initializeAIInsights() {
+    _hargaRata = _property.hargaRata ?? '';
+    _fasilitasTerdekat = _property.fasilitasTerdekat ?? '';
+  }
+
+  Future<void> _runAIInsight() async {
+    if (_isGeneratingAI) return;
+
     setState(() {
-      _hargaRata = widget.property.hargaRata ?? '';
-      _fasilitasTerdekat = widget.property.fasilitasTerdekat ?? '';
-      _fasilitasDekorasi = widget.property.fasilitasDekorasi ?? '';
+      _isGeneratingAI = true;
     });
+
+    try {
+      debugPrint('🔍 Running AI Insight for property:');
+      debugPrint('  - ID: ${widget.property.idProperty}');
+      debugPrint('  - Name: ${widget.property.namaProperty}');
+
+      final data = await PropertyRoutes.generateAiInsight(
+        widget.property.idProperty,
+      );
+
+      if (mounted) {
+        setState(() {
+          _hargaRata = data['harga_rata'] ?? '';
+          _fasilitasTerdekat = data['fasilitas_terdekat'] ?? '';
+          // Update property object as well to reflect changes
+          _property = Property(
+            idProperty: _property.idProperty,
+            namaProperty: _property.namaProperty,
+            kode: _property.kode,
+            tipe: _property.tipe,
+            harga: _property.harga,
+            alamat: _property.alamat,
+            lt: _property.lt,
+            lb: _property.lb,
+            kamarTidur: _property.kamarTidur,
+            kamarMandi: _property.kamarMandi,
+            lantai: _property.lantai,
+            surat: _property.surat,
+            isi: _property.isi,
+            mainImageProperty: _property.mainImageProperty,
+            images: _property.images,
+            namaStaff: _property.namaStaff,
+            teleponStaff: _property.teleponStaff,
+            kategoriProperty: _property.kategoriProperty,
+            hargaRata: _hargaRata,
+            fasilitasTerdekat: _fasilitasTerdekat,
+            fasilitasDekorasi: null,
+            petaMap: data['peta_map'],
+          );
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('AI Insight berhasil digenerate!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error generating AI insight: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal generate AI Insight: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGeneratingAI = false;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoadingDetail) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(color: Color(0xFF1A237E)),
+              const SizedBox(height: 16),
+              Text(
+                'Memuat detail properti...',
+                style: GoogleFonts.poppins(
+                  color: Colors.grey[600],
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -518,12 +642,12 @@ ${widget.property.mainImageUrl ?? ''}
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A237E).withValues(alpha: 0.1),
+                  color: const Color(0xFF1A237E),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
                   Icons.psychology,
-                  color: Color(0xFF1A237E),
+                  color: Colors.white,
                   size: 24,
                 ),
               ),
@@ -553,7 +677,6 @@ ${widget.property.mainImageUrl ?? ''}
           const SizedBox(height: 20),
           if (_hargaRata.isNotEmpty ||
               _fasilitasTerdekat.isNotEmpty ||
-              _fasilitasDekorasi.isNotEmpty ||
               widget.property.petaMap != null)
             _buildEnhancedAIInsightCards()
           else
@@ -564,16 +687,57 @@ ${widget.property.mainImageUrl ?? ''}
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.grey[200]!),
               ),
-              child: Row(
+              child: Column(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.grey[600], size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'AI Insight sedang memproses data untuk properti ini. Silakan cek kembali nanti.',
-                      style: GoogleFonts.poppins(
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
                         color: Colors.grey[600],
-                        fontSize: 14,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Data AI Insight belum tersedia untuk properti ini.',
+                          style: GoogleFonts.poppins(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _isGeneratingAI ? null : _runAIInsight,
+                      icon: _isGeneratingAI
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Icon(Icons.auto_awesome, color: Colors.white),
+                      label: Text(
+                        _isGeneratingAI
+                            ? 'Sedang Menganalisis...'
+                            : 'Jalankan AI Insight',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1A237E),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
                   ),
@@ -608,15 +772,12 @@ ${widget.property.mainImageUrl ?? ''}
             accentColor: const Color(0xFFE3F2FD),
           ),
 
-        // Inspirasi Dekorasi Card
-        if (_fasilitasDekorasi.isNotEmpty)
-          _buildInsightCard(
-            icon: Icons.palette_outlined,
-            title: 'Inspirasi Dekorasi',
-            content: _fasilitasDekorasi,
-            color: const Color(0xFF2E7D32),
-            accentColor: const Color(0xFFE8F5E9),
-          ),
+        // Peta Lokasi Card
+        if (widget.property.petaMap != null) _buildMapCard(),
+
+        // Calculator KPR Section
+        const SizedBox(height: 8),
+        _buildCalculatorKprSection(),
       ],
     );
   }
@@ -650,10 +811,10 @@ ${widget.property.mainImageUrl ?? ''}
           leading: Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: accentColor,
+              color: color,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: color, size: 22),
+            child: Icon(icon, color: Colors.white, size: 22),
           ),
           title: Text(
             title,
@@ -677,26 +838,231 @@ ${widget.property.mainImageUrl ?? ''}
       ),
     );
   }
+
+  Widget _buildCalculatorKprSection() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: Colors.grey[100]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1565C0),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.calculate_outlined,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Hitung KPR',
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF1A237E),
+                      ),
+                    ),
+                    Text(
+                      'Hitung cicilan KPR properti ini',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          UpCalculatorAI(
+            propertyPrice: _property.harga,
+            propertyName: _property.namaProperty,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMapCard() {
+    final petaMap = widget.property.petaMap;
+    if (petaMap == null) return const SizedBox.shrink();
+
+    // Extract coordinates from petaMap
+    final latitude = petaMap['latitude'];
+    final longitude = petaMap['longitude'];
+    final mapsQuery = petaMap['maps_query'] ?? '';
+
+    if (latitude == null || longitude == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(color: Colors.grey[100]!),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          initiallyExpanded: true,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          leading: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE65100),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.location_on, color: Colors.white, size: 22),
+          ),
+          title: Text(
+            'Lokasi Properti',
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+              color: const Color(0xFF333333),
+            ),
+          ),
+          subtitle: mapsQuery.isNotEmpty
+              ? Text(
+                  mapsQuery,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                )
+              : null,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Coordinates info
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.my_location,
+                          size: 16,
+                          color: Colors.grey[600],
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Koordinat: $latitude, $longitude',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Google Maps iframe
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: SizedBox(
+                      height: 250,
+                      child: HtmlUtils.renderHtmlContent(
+                        '<iframe src="https://www.google.com/maps?q=$latitude,$longitude&z=16&output=embed" width="100%" height="250" style="border:0;" allowfullscreen loading="lazy"></iframe>',
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Open in Google Maps button
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        // Open Google Maps in browser
+                        final url =
+                            'https://www.google.com/maps?q=$latitude,$longitude';
+                        debugPrint('Open Google Maps: $url');
+                      },
+                      icon: const Icon(Icons.open_in_new, size: 18),
+                      label: Text(
+                        'Buka di Google Maps',
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF1A237E),
+                        side: const BorderSide(color: Color(0xFF1A237E)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-class KprCalculatorBottomSheet extends StatefulWidget {
+class UpCalculatorAI extends StatefulWidget {
   final double propertyPrice;
   final String propertyName;
 
-  const KprCalculatorBottomSheet({
+  const UpCalculatorAI({
     super.key,
     required this.propertyPrice,
     required this.propertyName,
   });
 
   @override
-  State<KprCalculatorBottomSheet> createState() =>
-      _KprCalculatorBottomSheetState();
+  State<UpCalculatorAI> createState() => _UpCalculatorAIState();
 }
 
-class _KprCalculatorBottomSheetState extends State<KprCalculatorBottomSheet> {
+class _UpCalculatorAIState extends State<UpCalculatorAI> {
   double _downPaymentPercent = 20;
-  double _interestRate = 11.5;
+  double _interestRate = 8.0;
   int _loanTenure = 20;
   double _monthlyIncome = 10000000;
   bool _showSchedule = false;
@@ -745,32 +1111,12 @@ class _KprCalculatorBottomSheetState extends State<KprCalculatorBottomSheet> {
             ),
             child: Column(
               children: [
-                Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close, color: Colors.white),
-                    ),
-                    Expanded(
-                      child: Text(
-                        'Kalkulator KPR',
-                        style: GoogleFonts.poppins(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    const SizedBox(width: 48),
-                  ],
-                ),
-                const SizedBox(height: 8),
                 Text(
                   widget.propertyName,
                   style: GoogleFonts.poppins(
                     fontSize: 14,
-                    color: Colors.white.withValues(alpha: 0.8),
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontWeight: FontWeight.w600,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -930,7 +1276,7 @@ class _KprCalculatorBottomSheetState extends State<KprCalculatorBottomSheet> {
           value: value,
           min: min,
           max: max,
-          divisions: ((max - min) / 0.5).round(),
+          divisions: ((max - min) / 0.1).round(),
           activeColor: const Color(0xFF1A237E),
           onChanged: onChanged,
         ),

@@ -1,7 +1,7 @@
 ﻿import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../../config/app_config.dart';
-import '../../models/models_user.dart';
+import 'app_config.dart';
+import '../models/models_user.dart';
 
 /// Base class containing shared utilities for all API routes
 class ApiBase {

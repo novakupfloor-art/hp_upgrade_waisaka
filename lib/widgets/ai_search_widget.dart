@@ -1,7 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../providers/providers_property.dart';
+import '../providers/management_property.dart';
 
 /// AI-powered search widget with voice input and advanced filters
 class AiSearchWidget extends StatefulWidget {
@@ -9,6 +9,7 @@ class AiSearchWidget extends StatefulWidget {
   final VoidCallback? onSearchStarted;
   final Function(List)? onResultsReceived;
   final Function(String)? onListingTypeChanged;
+  final VoidCallback? onNavigateToResults; // New callback for navigation
 
   const AiSearchWidget({
     super.key,
@@ -16,6 +17,7 @@ class AiSearchWidget extends StatefulWidget {
     this.onSearchStarted,
     this.onResultsReceived,
     this.onListingTypeChanged,
+    this.onNavigateToResults, // Add to constructor
   });
 
   @override
@@ -197,6 +199,9 @@ class AiSearchWidgetState extends State<AiSearchWidget>
         landSizeTo: maxLand?.toString(),
       );
     }
+
+    // Trigger navigation to results screen if callback is provided
+    widget.onNavigateToResults?.call();
   }
 
   void _showAdvancedFilters() {
@@ -769,6 +774,22 @@ class AiSearchWidgetState extends State<AiSearchWidget>
                 onSubmitted: (_) => _performSearch(),
               ),
             ),
+
+            // AI Search Example Text
+            if (_useAiSearch) ...[
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  'Contoh: Cari rumah dijual di kota wisata dengan harga maximal 3 milyar...',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ],
 
             // Active filters indicator
             if (_hasActiveFilters()) ...[

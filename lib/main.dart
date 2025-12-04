@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'screens/screens_splash.dart';
-import 'providers/providers_property.dart';
-import 'providers/providers_article.dart';
+import 'providers/management_property.dart';
+import 'providers/management_article.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

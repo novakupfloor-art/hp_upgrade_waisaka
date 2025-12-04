@@ -2,11 +2,15 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../models/models_property.dart';
-import 'api_base.dart';
+import '../../config/api_base.dart';
 
 /// AI Waisaka Search Routes
 class AiSearchRoutes {
   /// Search properties using AI Waisaka
+  /// Search properties using AI Waisaka
+  ///
+  /// This method now delegates to PropertySearchRoutes.searchProperties to ensure
+  /// consistent parameter mapping and reuse the fixed search logic.
   static Future<Map<String, dynamic>> searchWithAi({
     required String listingType, // 'jual' or 'sewa'
     String? location,
@@ -27,67 +31,69 @@ class AiSearchRoutes {
     String? keywords,
   }) async {
     try {
+      debugPrint('🤖 AI Search: Calling Real Endpoint /ai-waisaka/search');
+
       final url = '${ApiBase.apiBaseUrl}/ai-waisaka/search';
+      final headers = await ApiBase.getHeaders();
 
-      debugPrint('🤖 AI Search: POST $url');
-
-      final filters = <String, dynamic>{
+      final filters = {
         'listingType': listingType,
-        if (location != null && location.isNotEmpty) 'location': location,
-        if (minPrice != null) 'minPrice': minPrice,
-        if (maxPrice != null) 'maxPrice': maxPrice,
-        if (minLandArea != null) 'minLandArea': minLandArea,
-        if (maxLandArea != null) 'maxLandArea': maxLandArea,
-        if (minBuildingArea != null) 'minBuildingArea': minBuildingArea,
-        if (maxBuildingArea != null) 'maxBuildingArea': maxBuildingArea,
-        if (bedrooms != null) 'bedrooms': bedrooms,
-        if (bathrooms != null) 'bathrooms': bathrooms,
-        if (propertyType != null) 'propertyType': propertyType,
-        if (certificate != null) 'certificate': certificate,
-        if (categoryId != null) 'categoryId': categoryId,
-        if (provinceId != null) 'provinceId': provinceId,
-        if (districtId != null) 'districtId': districtId,
-        if (subDistrictId != null) 'subDistrictId': subDistrictId,
-        // Ensure keywords are passed as 'query' or 'keywords' depending on backend expectation.
-        // Based on typical AI search, 'query' is often used for the natural language part.
-        // We'll send both to be safe or stick to 'keywords' if that's what was there.
-        // User asked for "text yang rumit" (complex text) to be handled better.
-        // We'll ensure it's passed as a distinct field.
-        if (keywords != null && keywords.isNotEmpty) 'keywords': keywords,
-        if (keywords != null && keywords.isNotEmpty) 'query': keywords,
+        'keywords': keywords,
+        'location': location,
+        'minPrice': minPrice,
+        'maxPrice': maxPrice,
+        'minLandArea': minLandArea,
+        'maxLandArea': maxLandArea,
+        'minBuildingArea': minBuildingArea,
+        'maxBuildingArea': maxBuildingArea,
+        'bedrooms': bedrooms,
+        'bathrooms': bathrooms,
+        'propertyType': propertyType,
+        'certificate': certificate,
+        'categoryId': categoryId,
+        'provinceId': provinceId,
+        'districtId': districtId,
+        'subDistrictId': subDistrictId,
       };
 
-      debugPrint('📝 Filters: $filters');
+      // Remove null values
+      filters.removeWhere((key, value) => value == null);
+
+      final body = {'filters': filters};
+
+      debugPrint('🤖 AI Search Request URL: $url');
+      debugPrint('🤖 AI Search Request Headers: $headers');
+      debugPrint('🤖 AI Search Request Body: ${jsonEncode(body)}');
 
       final response = await http.post(
         Uri.parse(url),
-        headers: await ApiBase.getHeaders(),
-        body: jsonEncode({'filters': filters}),
+        headers: headers,
+        body: jsonEncode(body),
       );
 
-      debugPrint('📡 Response Status: ${response.statusCode}');
+      debugPrint('🤖 AI Search Response Status: ${response.statusCode}');
+      debugPrint('🤖 AI Search Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
         if (data['success'] == true) {
-          final List<Property> properties = (data['data'] as List)
+          final List<dynamic> propertiesData = data['data'] ?? [];
+          final properties = propertiesData
               .map((json) => Property.fromJson(json))
               .toList();
-
-          debugPrint('✅ Found ${properties.length} properties');
 
           return {
             'success': true,
             'properties': properties,
-            'metadata': data['search_metadata'],
+            'metadata': data['metadata'],
           };
         } else {
-          throw Exception(data['message'] ?? 'Search failed');
+          throw Exception(data['message'] ?? 'AI Search failed');
         }
       } else {
-        final errorData = jsonDecode(response.body);
-        throw Exception(errorData['message'] ?? 'Failed to search properties');
+        throw Exception(
+          'Failed to connect to AI Search (Status: ${response.statusCode})',
+        );
       }
     } catch (e) {
       debugPrint('❌ AI Search Error: $e');

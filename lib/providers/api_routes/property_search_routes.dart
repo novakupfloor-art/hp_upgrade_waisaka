@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../models/models_property.dart';
-import 'api_base.dart';
+import '../../config/api_base.dart';
 
 /// Advanced Property Search Routes (matching waisakaproperty.com)
 class PropertySearchRoutes {
@@ -38,30 +38,32 @@ class PropertySearchRoutes {
       final response = await http.get(
         Uri.parse(url).replace(
           queryParameters: {
-            if (keyword != null && keyword.isNotEmpty) 'q': keyword,
+            // Fixed parameter names to match backend API
+            if (keyword != null && keyword.isNotEmpty) 'keywords': keyword,
             if (tipe != null) 'tipe': tipe,
             if (idKategoriProperty != null)
               'id_kategori_property': idKategoriProperty,
-            if (location != null && location.isNotEmpty) 'location': location,
+            // Price filters - use min_harga/max_harga
             if (priceFrom != null && priceFrom.isNotEmpty)
-              'price_from': priceFrom,
-            if (priceTo != null && priceTo.isNotEmpty) 'price_to': priceTo,
-            if (bedrooms != null && bedrooms.isNotEmpty) 'bedrooms': bedrooms,
+              'min_harga': priceFrom,
+            if (priceTo != null && priceTo.isNotEmpty) 'max_harga': priceTo,
+            // Bedroom/Bathroom filters - use kamar_tidur/kamar_mandi
+            if (bedrooms != null && bedrooms.isNotEmpty)
+              'kamar_tidur': bedrooms.replaceAll('+', ''),
             if (bathrooms != null && bathrooms.isNotEmpty)
-              'bathrooms': bathrooms,
+              'kamar_mandi': bathrooms.replaceAll('+', ''),
+            // Land area filters - use min_lt/max_lt
             if (landSizeFrom != null && landSizeFrom.isNotEmpty)
-              'landsize_from': landSizeFrom,
+              'min_lt': landSizeFrom,
             if (landSizeTo != null && landSizeTo.isNotEmpty)
-              'landsize_to': landSizeTo,
+              'max_lt': landSizeTo,
+            // Building area filters - use min_lb/max_lb
             if (buildingSizeFrom != null && buildingSizeFrom.isNotEmpty)
-              'buildingsize_from': buildingSizeFrom,
+              'min_lb': buildingSizeFrom,
             if (buildingSizeTo != null && buildingSizeTo.isNotEmpty)
-              'buildingsize_to': buildingSizeTo,
-            if (certificates != null && certificates.isNotEmpty)
-              'certificates': certificates,
+              'max_lb': buildingSizeTo,
+            // Pagination
             if (page != null) 'page': page.toString(),
-            if (limit != null) 'limit': limit.toString(),
-            if (order != null) 'order': order,
           },
         ),
         headers: await ApiBase.getHeaders(),
